@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "id": "ppcards",
-  "version": "1.0.63",
+  "version": "1.0.65",
   "name": "Print Physical Card",
   "scopes": ["vso.work", "vso.extension.data_write"],
   "description": "Print work items from the context menu.",

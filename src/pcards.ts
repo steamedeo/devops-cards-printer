@@ -62,24 +62,15 @@ const printWorkItems = {
                   });
                 }
 
-                if (page.type === "User Story") {
+                if (page.type === "User Story" || page.type === "Product Backlog Item"  || page.type === "Requirement") {
                   userStoryCard = userStoryTemplate({
                     number: page.id,
                     title: page.title,
                     estimate: page.estimate,
                     assigned_to: page.assigned_to,
                     area_path: page.area_path,
-                    iteration_path: page.iteration_path
-                  });
-                }
-                if (page.type === "Product Backlog Item") {
-                  userStoryCard = userStoryTemplate({
-                    number: page.id,
-                    title: page.title,
-                    estimate: page.estimate,
-                    assigned_to: page.assigned_to,
-                    area_path: page.area_path,
-                    iteration_path: page.iteration_path
+                    iteration_path: page.iteration_path,
+                    tags: page.tags
                   });
                 }
 
@@ -94,16 +85,14 @@ const printWorkItems = {
                 if (page.type === "Bug") {
                   workItems.innerHTML += bugCard;
                 }
-                if (page.type === "User Story") {
+                if (page.type === "User Story" || page.type === "Product Backlog Item" || page.type === "Requirement") {
                   workItems.innerHTML += userStoryCard;
                 }
-                if (page.type === "Product Backlog Item") {
-                  workItems.innerHTML += userStoryCard;
-                }
+
                 if (page.type === "Task") {
                   workItems.innerHTML += taskCard;
                 }
-                if (page.type !== "User Story" && page.type !== "Bug" && page.type !== "Task" && page.type !== "Product Backlog Item") {
+                if (page.type !== "User Story" && page.type !== "Bug" && page.type !== "Task" && page.type !== "Product Backlog Item" && page.type !== "Requirement") {
                   workItems.innerHTML += "<div class='container'>Work item type not supported. ... yet.... </div>";
                 }
               });
@@ -137,10 +126,23 @@ function getWorkItems(wids: number[]): IPromise<Models.WorkItem[]> {
   );
 }
 
+function getLastPathValue(pathText: string): string {
+  if (pathText.length > 0) {
+    let pathArray: string[] = pathText.split("\\");
+    return pathArray[pathArray.length - 1];
+  }
+  else {
+    return pathText;
+  }
+}
+
 function prepare(workItems: Models.WorkItem[]) {
   return workItems.map(item => {
     let result = {};
 
+    let tag_val = item.fields["System.Tags"];
+    let area_val = getLastPathValue(item.fields["System.AreaPath"]);
+    let iteration_val = getLastPathValue(item.fields["System.IterationPath"]);
     if (item.fields["System.WorkItemType"] === "User Story") {
       result = {
         "type": item.fields["System.WorkItemType"],
@@ -148,8 +150,9 @@ function prepare(workItems: Models.WorkItem[]) {
         "id":  item.fields["System.Id"],
         "estimate" : item.fields["Microsoft.VSTS.Scheduling.StoryPoints"],
         "assigned_to": item.fields["System.AssignedTo"],
-        "area_path": item.fields["System.AreaPath"],
-        "iteration_path": item.fields["System.IterationPath"]
+        "area_path": area_val,
+        "iteration_path": iteration_val,
+        "tags": tag_val
       };
     }
 
@@ -160,8 +163,22 @@ function prepare(workItems: Models.WorkItem[]) {
         "id":  item.fields["System.Id"],
         "estimate" : item.fields["Microsoft.VSTS.Common.BusinessValue"],
         "assigned_to": item.fields["System.AssignedTo"],
-        "area_path": item.fields["System.AreaPath"],
-        "iteration_path": item.fields["System.IterationPath"]
+        "area_path": area_val,
+        "iteration_path": iteration_val,
+        "tags": tag_val
+      };
+    }
+
+    if (item.fields["System.WorkItemType"] === "Requirement") {
+      result = {
+        "type": item.fields["System.WorkItemType"],
+        "title": item.fields["System.Title"],
+        "id":  item.fields["System.Id"],
+        "estimate" : item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+        "assigned_to": item.fields["System.AssignedTo"],
+        "area_path": area_val,
+        "iteration_path": iteration_val,
+        "tags": tag_val
       };
     }
 
