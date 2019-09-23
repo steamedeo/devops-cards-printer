@@ -5,7 +5,7 @@
     "webpack": "webpack --progress --colors --config webpack.config.js --output-path ./dist -p",
     "webpack:dev": "webpack --progress --colors --config webpack.dev.js --output-path ./dist -p",
     "postbuild": "npm run package",
-    "package": "tfx extension create  --rev-version",
+    "package": "tfx extension create",
     "package:dev": "tfx extension create --overrides-file vss-extension.dev.json --rev-version",
     "publish": "tfx extension publish",
     "gallery-publish": "tfx extension publish --rev-version",

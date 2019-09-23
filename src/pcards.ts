@@ -1,9 +1,7 @@
 import WITClient = require("TFS/WorkItemTracking/RestClient");
 import Models = require("TFS/WorkItemTracking/Contracts");
 import Q = require("q");
-const userStoryTemplate = require("./templates/user-story.handlebars");
-const bugTemplate = require("./templates/bug.handlebars");
-const taskTemplate = require("./templates/task.handlebars");
+const wiCardTemplate = require("./templates/wi-card.handlebars");
 
 const extensionContext = VSS.getExtensionContext();
 const client = WITClient.getClient();
@@ -47,53 +45,35 @@ const printWorkItems = {
             .then((pages: any) => {
               const workItems = document.createElement("div");
               workItems.setAttribute("class", "container border");
-
+              let wiCardCount = 0;
               pages.forEach(page => {
                 let bugCard: any;
                 let userStoryCard: any;
                 let taskCard: any;
 
-                if (page.type === "Bug") {
-                  bugCard = bugTemplate({
+                wiCardCount++;
+                if (page.type !== "processerror") {
+                  userStoryCard = wiCardTemplate({
                     number: page.id,
-                    title: page.title,
-                    repro_steps: page.repro_steps,
-                    system_info: page.system_info
-                  });
-                }
-
-                if (page.type === "User Story" || page.type === "Product Backlog Item"  || page.type === "Requirement") {
-                  userStoryCard = userStoryTemplate({
-                    number: page.id,
+                    style_wiNumber: page.id,
+                    work_item_type: page.type,
                     title: page.title,
                     estimate: page.estimate,
                     assigned_to: page.assigned_to,
                     area_path: page.area_path,
                     iteration_path: page.iteration_path,
-                    tags: page.tags
+                    tags: page.tags,
+                    border_color: page.border_color,
+                    icon: page.icon
                   });
-                }
-
-                if (page.type === "Task") {
-                  taskCard = taskTemplate({
-                    number: page.id,
-                    title: page.title,
-                    description: page.description
-                  });
-                }
-
-                if (page.type === "Bug") {
-                  workItems.innerHTML += bugCard;
-                }
-                if (page.type === "User Story" || page.type === "Product Backlog Item" || page.type === "Requirement") {
                   workItems.innerHTML += userStoryCard;
                 }
-
-                if (page.type === "Task") {
-                  workItems.innerHTML += taskCard;
+                else {
+                  workItems.innerHTML  += "<div> ERROR <br>" + page.message + "</div>";
                 }
-                if (page.type !== "User Story" && page.type !== "Bug" && page.type !== "Task" && page.type !== "Product Backlog Item" && page.type !== "Requirement") {
-                  workItems.innerHTML += "<div class='container'>Work item type not supported. ... yet.... </div>";
+
+                if ((wiCardCount % 3) === 0 && pages.length > wiCardCount) {
+                  workItems.innerHTML += "<p style='page-break-before: always'><br/>&nbsp;<br/>";
                 }
               });
               document.body.appendChild(workItems);
@@ -126,6 +106,10 @@ function getWorkItems(wids: number[]): IPromise<Models.WorkItem[]> {
   );
 }
 
+function getWorkItemDefinition(thisWorkItem: Models.WorkItem): IPromise<Models.WorkItemType> {
+  return client.getWorkItemType(thisWorkItem.fields["System.TeamProject"], thisWorkItem.fields["System.WorkItemType"]);
+}
+
 function getLastPathValue(pathText: string): string {
   if (pathText.length > 0) {
     let pathArray: string[] = pathText.split("\\");
@@ -140,69 +124,136 @@ function prepare(workItems: Models.WorkItem[]) {
   return workItems.map(item => {
     let result = {};
 
-    let tag_val = item.fields["System.Tags"];
-    let area_val = getLastPathValue(item.fields["System.AreaPath"]);
-    let iteration_val = getLastPathValue(item.fields["System.IterationPath"]);
-    if (item.fields["System.WorkItemType"] === "User Story") {
+    return getWorkItemDefinition(item).then(thisWIT => {
+      try {
+        let template_filled: boolean = false;
+        let work_item_color = thisWIT["color"];
+        let work_item_icon = thisWIT.icon["url"];
+        let tag_val = item.fields["System.Tags"];
+        let area_val = getLastPathValue(item.fields["System.AreaPath"]);
+        let iteration_val = getLastPathValue(item.fields["System.IterationPath"]);
+        if (item.fields["System.WorkItemType"] === "User Story") {
+          result = {
+            "type": item.fields["System.WorkItemType"],
+            "title": item.fields["System.Title"],
+            "id":  item.fields["System.Id"],
+            "estimate" : item.fields["Microsoft.VSTS.Scheduling.StoryPoints"],
+            "assigned_to": item.fields["System.AssignedTo"],
+            "area_path": area_val,
+            "iteration_path": iteration_val,
+            "tags": tag_val,
+            "border_color": work_item_color,
+            "icon": work_item_icon
+          };
+          template_filled = true;
+        }
+
+        if (item.fields["System.WorkItemType"] === "Product Backlog Item") {
+          result = {
+            "type": item.fields["System.WorkItemType"],
+            "title": item.fields["System.Title"],
+            "id":  item.fields["System.Id"],
+            "estimate" : item.fields["Microsoft.VSTS.Common.BusinessValue"],
+            "assigned_to": item.fields["System.AssignedTo"],
+            "area_path": area_val,
+            "iteration_path": iteration_val,
+            "tags": tag_val,
+            "border_color": work_item_color,
+            "icon": work_item_icon
+          };
+          template_filled = true;
+        }
+
+        if (item.fields["System.WorkItemType"] === "Requirement") {
+          result = {
+            "type": item.fields["System.WorkItemType"],
+            "title": item.fields["System.Title"],
+            "id":  item.fields["System.Id"],
+            "estimate" : item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+            "assigned_to": item.fields["System.AssignedTo"],
+            "area_path": area_val,
+            "iteration_path": iteration_val,
+            "tags": tag_val,
+            "border_color": work_item_color,
+            "icon": work_item_icon
+          };
+          template_filled = true;
+        }
+
+        if (item.fields["System.WorkItemType"] === "Bug") {
+          result = {
+            "type": item.fields["System.WorkItemType"],
+            "title": item.fields["System.Title"],
+            "id":  item.fields["System.Id"],
+            "estimate" : item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+            "assigned_to": item.fields["System.AssignedTo"],
+            "area_path": area_val,
+            "iteration_path": iteration_val,
+            "tags": tag_val,
+            "border_color": work_item_color,
+            "icon": work_item_icon
+          };
+          template_filled = true;
+        }
+
+        if (item.fields["System.WorkItemType"] === "Task") {
+          result = {
+            "type": item.fields["System.WorkItemType"],
+            "title": item.fields["System.Title"],
+            "description":  item.fields["System.Description"],
+            "id":  item.fields["System.Id"],
+            "estimate" : item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+            "assigned_to": item.fields["System.AssignedTo"],
+            "area_path": area_val,
+            "iteration_path": iteration_val,
+            "tags": tag_val,
+            "border_color": work_item_color,
+            "icon": work_item_icon
+          };
+          template_filled = true;
+        }
+        if (item.fields["System.WorkItemType"] === "Epic" || item.fields["System.WorkItemType"] === "Feature") {
+          result = {
+            "type": item.fields["System.WorkItemType"],
+            "title": item.fields["System.Title"],
+            "description":  item.fields["System.Description"],
+            "id":  item.fields["System.Id"],
+            "estimate" : item.fields["Microsoft.VSTS.Common.BusinessValue"],
+            "assigned_to": item.fields["System.AssignedTo"],
+            "area_path": area_val,
+            "iteration_path": iteration_val,
+            "tags": tag_val,
+            "border_color": work_item_color,
+            "icon": work_item_icon
+          };
+          template_filled = true;
+        }
+        if (!template_filled) {
+          result = {
+          "type": item.fields["System.WorkItemType"],
+          "title": item.fields["System.Title"],
+          "description":  item.fields["System.Description"],
+          "id":  item.fields["System.Id"],
+          "estimate" : item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+          "assigned_to": item.fields["System.AssignedTo"],
+          "area_path": area_val,
+          "iteration_path": iteration_val,
+          "tags": tag_val,
+          "border_color": work_item_color,
+          "icon": work_item_icon
+        };
+        }
+      }
+    catch (e) {
       result = {
-        "type": item.fields["System.WorkItemType"],
-        "title": item.fields["System.Title"],
-        "id":  item.fields["System.Id"],
-        "estimate" : item.fields["Microsoft.VSTS.Scheduling.StoryPoints"],
-        "assigned_to": item.fields["System.AssignedTo"],
-        "area_path": area_val,
-        "iteration_path": iteration_val,
-        "tags": tag_val
+        "type": "processerror",
+        "message": e
       };
     }
-
-    if (item.fields["System.WorkItemType"] === "Product Backlog Item") {
-      result = {
-        "type": item.fields["System.WorkItemType"],
-        "title": item.fields["System.Title"],
-        "id":  item.fields["System.Id"],
-        "estimate" : item.fields["Microsoft.VSTS.Common.BusinessValue"],
-        "assigned_to": item.fields["System.AssignedTo"],
-        "area_path": area_val,
-        "iteration_path": iteration_val,
-        "tags": tag_val
-      };
-    }
-
-    if (item.fields["System.WorkItemType"] === "Requirement") {
-      result = {
-        "type": item.fields["System.WorkItemType"],
-        "title": item.fields["System.Title"],
-        "id":  item.fields["System.Id"],
-        "estimate" : item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
-        "assigned_to": item.fields["System.AssignedTo"],
-        "area_path": area_val,
-        "iteration_path": iteration_val,
-        "tags": tag_val
-      };
-    }
-
-    if (item.fields["System.WorkItemType"] === "Bug") {
-      result = {
-        "type": item.fields["System.WorkItemType"],
-        "title": item.fields["System.Title"],
-        "repro_steps":  item.fields["Microsoft.VSTS.TCM.ReproSteps"],
-        "system_info":  item.fields["Microsoft.VSTS.TCM.SystemInfo"],
-        "id":  item.fields["System.Id"]
-      };
-    }
-
-    if (item.fields["System.WorkItemType"] === "Task") {
-      result = {
-        "type": item.fields["System.WorkItemType"],
-        "title": item.fields["System.Title"],
-        "description":  item.fields["System.Description"],
-        "id":  item.fields["System.Id"]
-      };
-    }
-
     return result;
   });
+  });
+
 }
 
 VSS.register(
