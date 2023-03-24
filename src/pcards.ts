@@ -65,6 +65,7 @@ const printWorkItems = {
                     product_owner: page.product_owner,
                     iteration_path: page.iteration_path,
                     tags: page.tags,
+                    parent_name: page.parent_name,
                     border_color: page.border_color,
                     icon: page.icon,
                   });
@@ -105,7 +106,7 @@ function getWorkItems(wids: number[]): IPromise<Models.WorkItem[]> {
     wids,
     undefined,
     undefined,
-    Models.WorkItemExpand.Fields
+    Models.WorkItemExpand.All
   );
 }
 
@@ -131,142 +132,165 @@ function prepare(workItems: Models.WorkItem[]) {
   return workItems.map((item) => {
     let result = {};
 
-    return getWorkItemDefinition(item).then((thisWIT) => {
-      console.log("PO: ", item.fields["Custom.ProductOwnerIVECO"]);
-      console.log("wave: ", item.fields["Custom.WAVEQUARTER"]);
-      try {
-        let template_filled: boolean = false;
-        let work_item_color = thisWIT["color"];
-        let work_item_icon = thisWIT.icon["url"];
-        let tag_val = item.fields["System.Tags"];
-        let area_val = getLastPathValue(item.fields["System.AreaPath"]);
-        let iteration_val = getLastPathValue(
-          item.fields["System.IterationPath"]
-        );
-        if (item.fields["System.WorkItemType"] === "User Story") {
+    return getWorkItemDefinition(item)
+      .then((thisWIT) => {
+        try {
+          let template_filled: boolean = false;
+          let work_item_color = thisWIT["color"];
+          let work_item_icon = thisWIT.icon["url"];
+          let tag_val = item.fields["System.Tags"];
+          let area_val = getLastPathValue(item.fields["System.AreaPath"]);
+          let iteration_val = getLastPathValue(
+            item.fields["System.IterationPath"]
+          );
+          if (item.fields["System.WorkItemType"] === "User Story") {
+            result = {
+              type: item.fields["System.WorkItemType"],
+              title: item.fields["System.Title"],
+              id: item.fields["System.Id"],
+              estimate: item.fields["Microsoft.VSTS.Scheduling.StoryPoints"],
+              assigned_to: item.fields["System.AssignedTo"],
+              area_path: area_val,
+              iteration_path: iteration_val,
+              tags: tag_val,
+              border_color: work_item_color,
+              icon: work_item_icon,
+            };
+            template_filled = true;
+          }
+
+          if (item.fields["System.WorkItemType"] === "Product Backlog Item") {
+            result = {
+              type: item.fields["System.WorkItemType"],
+              title: item.fields["System.Title"],
+              id: item.fields["System.Id"],
+              estimate: item.fields["Microsoft.VSTS.Common.BusinessValue"],
+              assigned_to: item.fields["System.AssignedTo"],
+              area_path: area_val,
+              iteration_path: iteration_val,
+              tags: tag_val,
+              border_color: work_item_color,
+              icon: work_item_icon,
+            };
+            template_filled = true;
+          }
+
+          if (item.fields["System.WorkItemType"] === "Requirement") {
+            result = {
+              type: item.fields["System.WorkItemType"],
+              title: item.fields["System.Title"],
+              id: item.fields["System.Id"],
+              estimate:
+                item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+              assigned_to: item.fields["System.AssignedTo"],
+              area_path: area_val,
+              iteration_path: iteration_val,
+              tags: tag_val,
+              border_color: work_item_color,
+              icon: work_item_icon,
+            };
+            template_filled = true;
+          }
+
+          if (item.fields["System.WorkItemType"] === "Bug") {
+            result = {
+              type: item.fields["System.WorkItemType"],
+              title: item.fields["System.Title"],
+              id: item.fields["System.Id"],
+              estimate:
+                item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+              assigned_to: item.fields["System.AssignedTo"],
+              area_path: area_val,
+              iteration_path: iteration_val,
+              tags: tag_val,
+              border_color: work_item_color,
+              icon: work_item_icon,
+            };
+            template_filled = true;
+          }
+
+          if (item.fields["System.WorkItemType"] === "Task") {
+            result = {
+              type: item.fields["System.WorkItemType"],
+              title: item.fields["System.Title"],
+              description: item.fields["System.Description"],
+              id: item.fields["System.Id"],
+              estimate:
+                item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+              assigned_to: item.fields["System.AssignedTo"],
+              area_path: area_val,
+              iteration_path: iteration_val,
+              tags: tag_val,
+              border_color: work_item_color,
+              icon: work_item_icon,
+            };
+            template_filled = true;
+          }
+          if (
+            item.fields["System.WorkItemType"] === "Epic" ||
+            item.fields["System.WorkItemType"] === "Feature"
+          ) {
+            result = {
+              type: item.fields["System.WorkItemType"],
+              title: item.fields["System.Title"],
+              description: item.fields["System.Description"],
+              id: item.fields["System.Id"],
+              estimate: item.fields["Microsoft.VSTS.Scheduling.Effort"],
+              assigned_to: item.fields["System.AssignedTo"],
+              product_owner: item.fields["Custom.ProductOwnerIVECO"],
+              wave_quarter: item.fields["Custom.WAVEQUARTER"],
+              area_path: area_val,
+              iteration_path: iteration_val,
+              tags: tag_val,
+              border_color: work_item_color,
+              icon: work_item_icon,
+            };
+            template_filled = true;
+          }
+          if (!template_filled) {
+            result = {
+              type: item.fields["System.WorkItemType"],
+              title: item.fields["System.Title"],
+              description: item.fields["System.Description"],
+              id: item.fields["System.Id"],
+              estimate:
+                item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
+              assigned_to: item.fields["System.AssignedTo"],
+              area_path: area_val,
+              iteration_path: iteration_val,
+              tags: tag_val,
+              border_color: work_item_color,
+              icon: work_item_icon,
+            };
+          }
+
+          let parentId: number;
+          for (const relation of item.relations) {
+            if (relation.attributes?.name === "Parent") {
+              parentId = parseInt(relation.url.split("/").slice(-1)[0]);
+              break;
+            }
+          }
+
+          return parentId ? client.getWorkItem(parentId) : null;
+        } catch (e) {
           result = {
-            type: item.fields["System.WorkItemType"],
-            title: item.fields["System.Title"],
-            id: item.fields["System.Id"],
-            estimate: item.fields["Microsoft.VSTS.Scheduling.StoryPoints"],
-            assigned_to: item.fields["System.AssignedTo"],
-            area_path: area_val,
-            iteration_path: iteration_val,
-            tags: tag_val,
-            border_color: work_item_color,
-            icon: work_item_icon,
+            type: "processerror",
+            message: e,
           };
-          template_filled = true;
+          return null;
+        }
+      })
+      .then((parentItem) => {
+        // add parent information to result
+        if (parentItem) {
+          result[
+            "parent_name"
+          ] = `${parentItem.id} ${parentItem.fields["System.Title"]}`;
         }
 
-        if (item.fields["System.WorkItemType"] === "Product Backlog Item") {
-          result = {
-            type: item.fields["System.WorkItemType"],
-            title: item.fields["System.Title"],
-            id: item.fields["System.Id"],
-            estimate: item.fields["Microsoft.VSTS.Common.BusinessValue"],
-            assigned_to: item.fields["System.AssignedTo"],
-            area_path: area_val,
-            iteration_path: iteration_val,
-            tags: tag_val,
-            border_color: work_item_color,
-            icon: work_item_icon,
-          };
-          template_filled = true;
-        }
-
-        if (item.fields["System.WorkItemType"] === "Requirement") {
-          result = {
-            type: item.fields["System.WorkItemType"],
-            title: item.fields["System.Title"],
-            id: item.fields["System.Id"],
-            estimate: item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
-            assigned_to: item.fields["System.AssignedTo"],
-            area_path: area_val,
-            iteration_path: iteration_val,
-            tags: tag_val,
-            border_color: work_item_color,
-            icon: work_item_icon,
-          };
-          template_filled = true;
-        }
-
-        if (item.fields["System.WorkItemType"] === "Bug") {
-          result = {
-            type: item.fields["System.WorkItemType"],
-            title: item.fields["System.Title"],
-            id: item.fields["System.Id"],
-            estimate: item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
-            assigned_to: item.fields["System.AssignedTo"],
-            area_path: area_val,
-            iteration_path: iteration_val,
-            tags: tag_val,
-            border_color: work_item_color,
-            icon: work_item_icon,
-          };
-          template_filled = true;
-        }
-
-        if (item.fields["System.WorkItemType"] === "Task") {
-          result = {
-            type: item.fields["System.WorkItemType"],
-            title: item.fields["System.Title"],
-            description: item.fields["System.Description"],
-            id: item.fields["System.Id"],
-            estimate: item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
-            assigned_to: item.fields["System.AssignedTo"],
-            area_path: area_val,
-            iteration_path: iteration_val,
-            tags: tag_val,
-            border_color: work_item_color,
-            icon: work_item_icon,
-          };
-          template_filled = true;
-        }
-        if (
-          item.fields["System.WorkItemType"] === "Epic" ||
-          item.fields["System.WorkItemType"] === "Feature"
-        ) {
-          result = {
-            type: item.fields["System.WorkItemType"],
-            title: item.fields["System.Title"],
-            description: item.fields["System.Description"],
-            id: item.fields["System.Id"],
-            estimate: item.fields["Microsoft.VSTS.Scheduling.Effort"],
-            assigned_to: item.fields["System.AssignedTo"],
-            product_owner: item.fields["Custom.ProductOwnerIVECO"],
-            wave_quarter: item.fields["Custom.WAVEQUARTER"],
-            area_path: area_val,
-            iteration_path: iteration_val,
-            tags: tag_val,
-            border_color: work_item_color,
-            icon: work_item_icon,
-          };
-          template_filled = true;
-        }
-        if (!template_filled) {
-          result = {
-            type: item.fields["System.WorkItemType"],
-            title: item.fields["System.Title"],
-            description: item.fields["System.Description"],
-            id: item.fields["System.Id"],
-            estimate: item.fields["Microsoft.VSTS.Scheduling.OriginalEstimate"],
-            assigned_to: item.fields["System.AssignedTo"],
-            area_path: area_val,
-            iteration_path: iteration_val,
-            tags: tag_val,
-            border_color: work_item_color,
-            icon: work_item_icon,
-          };
-        }
-      } catch (e) {
-        result = {
-          type: "processerror",
-          message: e,
-        };
-      }
-      return result;
-    });
+        return result;
+      });
   });
 }
 
