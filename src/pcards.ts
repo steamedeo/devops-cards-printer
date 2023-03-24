@@ -24,6 +24,21 @@ interface IActionContext {
   columns?: string[];
 }
 
+const STATE_COLORS = {
+  New: "Grey",
+  "Ready for Analysis": "#009CCC",
+  "Under Analysis": "#FBE74B",
+  "Ready for Development": "#AE88B9",
+  "Ready for SOW": "#5688E0",
+  "Under Development": "#5688E0",
+  "Ready for Test": "#5688E0",
+  "Under Test": "#5688E0",
+  Blocked: "#E87025",
+  "Ready for Approval": "#5688E0",
+  Done: "Green",
+  Removed: "Black",
+};
+
 const printWorkItems = {
   getMenuItems: (context: any) => {
     let menuItemText = "Print Physical Card";
@@ -65,6 +80,8 @@ const printWorkItems = {
                     product_owner: page.product_owner,
                     iteration_path: page.iteration_path,
                     tags: page.tags,
+                    state: page.state,
+                    state_color: page.state_color,
                     parent_name: page.parent_name,
                     border_color: page.border_color,
                     icon: page.icon,
@@ -131,6 +148,8 @@ function getLastPathValue(pathText: string): string {
 function prepare(workItems: Models.WorkItem[]) {
   return workItems.map((item) => {
     let result = {};
+
+    const stateColor = STATE_COLORS[item.fields["System.State"]];
 
     return getWorkItemDefinition(item)
       .then((thisWIT) => {
@@ -240,6 +259,8 @@ function prepare(workItems: Models.WorkItem[]) {
               product_owner: item.fields["Custom.ProductOwnerIVECO"],
               wave_quarter: item.fields["Custom.WAVEQUARTER"],
               area_path: area_val,
+              state: item.fields["System.State"],
+              state_color: stateColor,
               iteration_path: iteration_val,
               tags: tag_val,
               border_color: work_item_color,
