@@ -1,11 +1,11 @@
 {
   "manifestVersion": 1,
-  "id": "ppcards",
-  "version": "2.0.0",
-  "name": "Print Physical Card",
+  "id": "steamedeo",
+  "version": "1.0.8",
+  "name": "Devops Card Printer",
   "scopes": ["vso.work", "vso.extension.data_write"],
   "description": "Print work items from the context menu.",
-  "publisher": "OneLuckiDev",
+  "publisher": "steamedeo",
   "public": false,
   "icons": {
     "default": "static/img/logo.png"
@@ -15,11 +15,11 @@
       "id": "Microsoft.VisualStudio.Services"
     }
   ],
-  "categories": ["Azure Boards"],
+  "categories": ["Azure Repos"],
   "tags": ["print", "work items", "cards", "physical cards"],
   "content": {
     "details": {
-      "path": "details.md"
+      "path": "README.md"
     },
     "license": {
       "path": "LICENSE"
@@ -27,15 +27,15 @@
   },
   "links": {
     "support": {
-      "uri": "https://github.com/jeffpriz/pcards/issues"
+      "uri": "https://github.com/steamedeo/devops-cards-printer/issues"
     },
     "repository": {
-      "uri": "https://github.com/jeffpriz/pcards"
+      "uri": "https://github.com/steamedeo/devops-cards-printer"
     }
   },
   "repository": {
     "type": "git",
-    "uri": "https://github.com/jeffpriz/pcards"
+    "uri": "https://github.com/steamedeo/devops-cards-printer"
   },
   "branding": {
     "color": "rgb(27,160,225)",

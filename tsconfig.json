@@ -7,7 +7,8 @@
     "outDir": "dist/",
     "types": [
       "vss-web-extension-sdk"
-    ]
+    ],
+    "skipLibCheck": true
   },
   "files": [
     "src/pcards.ts"
