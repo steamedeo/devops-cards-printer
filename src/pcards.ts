@@ -25,7 +25,7 @@ interface IActionContext {
 }
 
 const STATE_COLORS = {
-  New: "Grey",
+  New: "#B2B2B2",
   "Ready for Analysis": "#009CCC",
   "Under Analysis": "#FBE74B",
   "Ready for Development": "#AE88B9",
@@ -35,8 +35,8 @@ const STATE_COLORS = {
   "Under Test": "#5688E0",
   Blocked: "#E87025",
   "Ready for Approval": "#5688E0",
-  Done: "Green",
-  Removed: "Black",
+  Done: "#339933",
+  Removed: "#1D2125",
 };
 
 const printWorkItems = {
