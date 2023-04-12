@@ -25,18 +25,18 @@ interface IActionContext {
 }
 
 const STATE_COLORS = {
-  New: "#B2B2B2",
-  "Ready for Analysis": "#009CCC",
-  "Under Analysis": "#FBE74B",
-  "Ready for Development": "#AE88B9",
-  "Ready for SOW": "#5688E0",
-  "Under Development": "#5688E0",
-  "Ready for Test": "#5688E0",
-  "Under Test": "#5688E0",
-  Blocked: "#E87025",
-  "Ready for Approval": "#5688E0",
-  Done: "#339933",
-  Removed: "#1D2125",
+  New: "B2B2B2",
+  "Ready for Analysis": "009CCC",
+  "Under Analysis": "FBE74B",
+  "Ready for Development": "AE88B9",
+  "Ready for SOW": "5688E0",
+  "Under Development": "5688E0",
+  "Ready for Test": "5688E0",
+  "Under Test": "5688E0",
+  Blocked: "E87025",
+  "Ready for Approval": "5688E0",
+  Done: "339933",
+  Removed: "1D2125",
 };
 
 const printWorkItems = {
@@ -82,7 +82,9 @@ const printWorkItems = {
                     tags: page.tags,
                     state: page.state,
                     state_color: page.state_color,
+                    priority: page.priority,
                     parent_name: page.parent_name,
+                    grandparent_name: page.grandparent_name,
                     border_color: page.border_color,
                     icon: page.icon,
                   });
@@ -150,12 +152,16 @@ function prepare(workItems: Models.WorkItem[]) {
     let result = {};
 
     const stateColor = STATE_COLORS[item.fields["System.State"]];
+    console.log(stateColor);
 
     return getWorkItemDefinition(item)
       .then((thisWIT) => {
         try {
           let template_filled: boolean = false;
           let work_item_color = thisWIT["color"];
+
+          console.log(work_item_color);
+
           let work_item_icon = thisWIT.icon["url"];
           let tag_val = item.fields["System.Tags"];
           let area_val = getLastPathValue(item.fields["System.AreaPath"]);
@@ -260,6 +266,7 @@ function prepare(workItems: Models.WorkItem[]) {
               wave_quarter: item.fields["Custom.WAVEQUARTER"],
               area_path: area_val,
               state: item.fields["System.State"],
+              priority: item.fields["Microsoft.VSTS.Common.Priority"],
               state_color: stateColor,
               iteration_path: iteration_val,
               tags: tag_val,
@@ -293,23 +300,45 @@ function prepare(workItems: Models.WorkItem[]) {
             }
           }
 
-          return parentId ? client.getWorkItem(parentId) : null;
+          return parentId ? getWorkItems([parentId]) : null;
         } catch (e) {
           result = {
             type: "processerror",
             message: e,
           };
+          console.log(result);
           return null;
         }
       })
-      .then((parentItem) => {
-        // add parent information to result
+      .then((parentItemArray) => {
+        // extract just the first item
+        const parentItem = parentItemArray[0];
+
+        // get info about grandparent
         if (parentItem) {
+          let grandParentId: number;
+
+          for (const relation of parentItem.relations) {
+            if (relation.attributes?.name === "Parent") {
+              grandParentId = parseInt(relation.url.split("/").slice(-1)[0]);
+              break;
+            }
+          }
+
+          // add parent information to result
           result[
             "parent_name"
           ] = `${parentItem.id} ${parentItem.fields["System.Title"]}`;
+          return grandParentId ? getWorkItems([grandParentId]) : null;
         }
-
+      })
+      .then((grandParentItemArray) => {
+        // extract just the first item
+        const grandParentItem = grandParentItemArray[0];
+        // add grandparent information to result
+        result[
+          "grandparent_name"
+        ] = `${grandParentItem.id} ${grandParentItem.fields["System.Title"]}`;
         return result;
       });
   });

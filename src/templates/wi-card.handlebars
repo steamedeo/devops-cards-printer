@@ -1,6 +1,9 @@
  <style type="text/css">
-         .border-story-{{style_wiNumber}} {
-            border: 4px solid #{{border_color}};
+        .border-story-{{style_wiNumber}} {
+          border: 4px solid #{{border_color}};
+        }
+        .fill-estimate-{{style_wiNumber}} {
+          border: 4px solid #{{state_color}};
         }
 </style>
 <div class="container border-story-{{style_wiNumber}}">
@@ -10,6 +13,8 @@
           <img src="{{icon}}" class="icon-image"/>
           <div class="work-item-text">{{work_item_type}} - {{number}}</div>
           <div class="col-space">&nbsp;</div>
+          <div class="work-item-text">Priority: {{priority}}</div>
+          <div class="col-space">&nbsp;</div>
           <div class="work-item-text">State: {{state}}</div>
           <div class="col-space">&nbsp;</div>
         </div>
@@ -18,11 +23,9 @@
         {{title}}
       </div>
     </div>
-    <div class="estimate-container border-story-{{style_wiNumber}}">
-      <div class="background-story">
+    <div class="estimate-container fill-estimate-{{style_wiNumber}}">
         <div class="estimate-number">
           <div>{{estimate}}</div>
-        </div>
       </div>
 
     </div>
@@ -46,6 +49,12 @@
     <div class="col-space">&nbsp;</div>
         <div class="vsts-iteration">
         <strong>Wave Quarter:</strong> {{wave_quarter}}
+    </div>
+  </div>
+  <div class="po-path-container">
+    <hr>
+    <div class="vsts-area">
+        <strong>Initiative:</strong> {{grandparent_name}}
     </div>
   </div>
 </div>

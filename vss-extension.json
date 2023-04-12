@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "id": "steamedeo",
-  "version": "1.0.34",
+  "version": "1.1.2",
   "name": "Devops Card Printer",
   "scopes": ["vso.work", "vso.extension.data_write"],
   "description": "Print work items from the context menu.",
