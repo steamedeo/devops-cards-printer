@@ -1,6 +1,7 @@
 import WITClient = require("TFS/WorkItemTracking/RestClient");
 import Models = require("TFS/WorkItemTracking/Contracts");
 import Q = require("q");
+import { log } from "handlebars";
 const wiCardTemplate = require("./templates/wi-card.handlebars");
 
 const extensionContext = VSS.getExtensionContext();
@@ -128,7 +129,6 @@ function getWorkItems(wids: number[]): IPromise<Models.WorkItem[]> {
     Models.WorkItemExpand.All
   );
 }
-
 function getWorkItemDefinition(
   thisWorkItem: Models.WorkItem
 ): IPromise<Models.WorkItemType> {
@@ -152,15 +152,12 @@ function prepare(workItems: Models.WorkItem[]) {
     let result = {};
 
     const stateColor = STATE_COLORS[item.fields["System.State"]];
-    console.log(stateColor);
 
     return getWorkItemDefinition(item)
       .then((thisWIT) => {
         try {
           let template_filled: boolean = false;
           let work_item_color = thisWIT["color"];
-
-          console.log(work_item_color);
 
           let work_item_icon = thisWIT.icon["url"];
           let tag_val = item.fields["System.Tags"];
@@ -300,7 +297,7 @@ function prepare(workItems: Models.WorkItem[]) {
             }
           }
 
-          return parentId ? getWorkItems([parentId]) : null;
+          return parentId ? getWorkItems([parentId]) : getWorkItems([item.id]);
         } catch (e) {
           result = {
             type: "processerror",
@@ -313,6 +310,12 @@ function prepare(workItems: Models.WorkItem[]) {
       .then((parentItemArray) => {
         // extract just the first item
         const parentItem = parentItemArray[0];
+
+        // quick fix: here I receive the grandparent or the parent item
+        if (parentItem.id === item.id) {
+          // there is no parent, just return the result
+          return getWorkItems([item.id]);
+        }
 
         // get info about grandparent
         if (parentItem) {
@@ -329,12 +332,25 @@ function prepare(workItems: Models.WorkItem[]) {
           result[
             "parent_name"
           ] = `${parentItem.id} ${parentItem.fields["System.Title"]}`;
-          return grandParentId ? getWorkItems([grandParentId]) : null;
+          return grandParentId
+            ? getWorkItems([grandParentId])
+            : getWorkItems([item.id]);
         }
       })
       .then((grandParentItemArray) => {
         // extract just the first item
         const grandParentItem = grandParentItemArray[0];
+
+        console.log("grandParentItem = ", grandParentItem);
+        console.log("item.id = ", item.id);
+        console.log("item = ", item);
+
+        // quick fix: here I receive the grandparent or the parent item
+        if (grandParentItem.id === item.id) {
+          // there is no parent, just return the result
+          return result;
+        }
+
         // add grandparent information to result
         result[
           "grandparent_name"

@@ -40,7 +40,11 @@
   <div class="po-path-container">
     <hr>
     <div class="vsts-area">
+        {{#if parent_name}}
         <strong>Epic:</strong> {{parent_name}}
+        {{else}}
+        <strong>Epic:</strong> N/A
+        {{/if}}
     </div>
         <div class="col-space">&nbsp;</div>
     <div class="vsts-iteration">
@@ -54,7 +58,11 @@
   <div class="po-path-container">
     <hr>
     <div class="vsts-area">
+        {{#if grandparent_name}}
         <strong>Initiative:</strong> {{grandparent_name}}
+        {{else}}
+        <strong>Initiative:</strong> N/A
+        {{/if}}
     </div>
   </div>
 </div>
